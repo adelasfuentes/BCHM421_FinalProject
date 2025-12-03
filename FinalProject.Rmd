@@ -1,5 +1,160 @@
 ---
-title: "FinalProject"
+title: "BCHM421_FinalProject"
+author: "Group C"
+date: "2025-12-03"
 output: html_document
 ---
 
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(tidyverse)
+library(vroom)
+library(shiny)
+library(ggplot2)
+library(magrittr)
+```
+
+```{r}
+cpm_wide <- "/depot/pascuzz-cl/data/bchm_data/human/cpm_wide.txt"
+prmt5_results <- "/depot/pascuzz-cl/data/bchm_data/human/prmt5_results.txt"
+mep50_results <- "/depot/pascuzz-cl/data/bchm_data/human/mep50_results.txt"
+
+cpm <- vroom(file=file.path(cpm_wide), 
+                         delim="\t", 
+                         col_types=NULL)
+
+prmt5 <- vroom(file=file.path(prmt5_results), 
+                         delim="\t", 
+                         col_types="cnnnnfc")
+
+mep50 <- vroom(file=file.path(mep50_results), 
+                         delim="\t", 
+                         col_types="cnnnnfc")
+
+prmt5
+mep50
+```
+
+## Up regulated genes for GO from PRMT5 and MEP50
+
+```{r}
+up_genes_prmt5 <- prmt5 %>%
+  filter(tests == "1") %>%
+  dplyr::select(SYMBOL)
+up_genes_prmt5
+write_delim(up_genes_prmt5, "prmt5_up.txt", col_names = FALSE)
+
+up_genes_mep50 <- mep50 %>%
+  filter(tests == "1") %>%
+  dplyr::select(SYMBOL)
+up_genes_mep50
+write_delim(up_genes_mep50, "mep50_up.txt", col_names = FALSE)
+
+down_genes_prmt5 <- prmt5 %>%
+  filter(tests == "-1") %>%
+  dplyr::select(SYMBOL)
+down_genes_prmt5
+write_delim(down_genes_prmt5, "prmt5_down.txt", col_names = FALSE)
+
+down_genes_mep50 <- mep50 %>%
+  filter(tests == "-1") %>%
+  dplyr::select(SYMBOL)
+down_genes_prmt5
+write_delim(down_genes_mep50, "mep50_down.txt", col_names = FALSE)
+
+back_genes_prmt5 <- prmt5 %>%
+  dplyr::select(SYMBOL)
+write_delim(back_genes_prmt5, "prmt5_back.txt", col_names=FALSE)
+
+back_genes_mep50 <- mep50 %>%
+  dplyr::select(SYMBOL)
+write_delim(back_genes_mep50, "mep50_back.txt", col_names=FALSE)
+
+```
+
+## Importing GOrilla xls results
+
+```{r}
+
+GO_mep50_down <- vroom("~/BCHM421_FinalProject/GOrilla Results/GO_mep50_down.txt", delim="\t", col_names=TRUE)
+GO_mep50_up <- vroom("~/BCHM421_FinalProject/GOrilla Results/GO_mep50_up.txt", delim="\t", col_names=TRUE)
+GO_prmt5_down <- vroom("~/BCHM421_FinalProject/GOrilla Results/GO_prmt5_down.txt", delim="\t", col_names=TRUE)
+GO_prmt5_up <- vroom("~/BCHM421_FinalProject/GOrilla Results/GO_prmt5_up.txt", delim="\t", col_names=TRUE)
+
+GO_mep50_down <- GO_mep50_down %>%
+  mutate(Group = "wdr77_down")
+GO_mep50_up <- GO_mep50_up %>%
+  mutate(Group = "wdr77_up")
+GO_prmt5_up <- GO_prmt5_up %>%
+  mutate(Group = "prmt5_up")
+GO_prmt5_down <- GO_prmt5_down %>%
+  mutate(Group = "prmt5_down")
+
+GO_mep50_down
+GO_mep50_up
+GO_prmt5_down
+GO_prmt5_up
+
+```
+## Extracting GO gene symbols
+
+```{r}
+#Function to extract gene symbols
+getGorillaSymbols <- function(genes){
+  require(dplyr)
+  require(magrittr)
+  genes %>% 
+    str_split(" - ", simplify=FALSE) %>%
+    c(recursive=TRUE) %>%
+    str_split(", ") %>%
+    sapply(tail, 1) %>%
+    str_trim("both") %>%
+    extract(1:(length(.) - 1)) %>%
+    str_remove("\\[") %>%
+    return(.)
+}
+
+prmt5up_genes <- lapply(GO_prmt5_up$Genes, getGorillaSymbols)
+names(prmt5up_genes) <- pull(GO_prmt5_up, `GO Term`)
+prmt5up_genes <- lapply(prmt5up_genes, function(x)(tibble(Symbol=x)))
+prmt5up_genes <- bind_rows(prmt5up_genes, .id="GO_ID")
+
+prmt5up_genes
+
+prmt5down_genes <- lapply(GO_prmt5_down$Genes, getGorillaSymbols)
+names(prmt5down_genes) <- pull(GO_prmt5_down, `GO Term`)
+prmt5down_genes <- lapply(prmt5down_genes, function(x)(tibble(Symbol=x)))
+prmt5down_genes <- bind_rows(prmt5down_genes, .id="GO_ID")
+
+prmt5down_genes
+
+prmt5_geneIndex <- prmt5up_genes %>%
+  rbind(prmt5down_genes) %>%
+  mutate(grouping = "prmt5")
+
+prmt5_geneIndex
+
+mep50up_genes <- lapply(GO_mep50_up$Genes, getGorillaSymbols)
+names(mep50up_genes) <- pull(GO_mep50_up, `GO Term`)
+mep50up_genes <- lapply(mep50up_genes, function(x)(tibble(Symbol=x)))
+mep50up_genes <- bind_rows(mep50up_genes, .id="GO_ID")
+
+
+mep50up_genes
+
+mep50down_genes <- lapply(GO_mep50_down$Genes, getGorillaSymbols)
+names(mep50down_genes) <- pull(GO_mep50_down, `GO Term`)
+mep50down_genes <- lapply(mep50down_genes, function(x)(tibble(Symbol=x)))
+mep50down_genes <- bind_rows(mep50down_genes, .id="GO_ID")
+
+mep50down_genes
+
+mep50_geneIndex <- mep50up_genes %>%
+  rbind(prmt5down_genes) %>%
+  mutate(grouping = "mep50")
+
+mep50_geneIndex
+```
