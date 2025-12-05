@@ -1,5 +1,5 @@
 ---
-title: "BCHM421_FinalProject"
+title: "BCHM421_FinalProject0"
 author: "Group C"
 date: "2025-12-03"
 output: html_document
@@ -36,6 +36,19 @@ mep50 <- vroom(file=file.path(mep50_results),
 
 prmt5
 mep50
+```
+
+## Add silenced gene to RNAseq results
+
+```{r}
+prmt5 <- prmt5 %>%
+  mutate(silenced = "prmt5")
+
+mep50 <- mep50 %>%
+  mutate(silenced = "wdr77")
+
+RNAseq <- rbind(prmt5, mep50)
+RNAseq
 ```
 
 ## Up regulated genes for GO from PRMT5 and MEP50
@@ -79,10 +92,10 @@ write_delim(back_genes_mep50, "mep50_back.txt", col_names=FALSE)
 
 ```{r}
 
-GO_mep50_down <- vroom("~/BCHM421_FinalProject/GOrilla Results/GO_mep50_down.txt", delim="\t", col_names=TRUE)
-GO_mep50_up <- vroom("~/BCHM421_FinalProject/GOrilla Results/GO_mep50_up.txt", delim="\t", col_names=TRUE)
-GO_prmt5_down <- vroom("~/BCHM421_FinalProject/GOrilla Results/GO_prmt5_down.txt", delim="\t", col_names=TRUE)
-GO_prmt5_up <- vroom("~/BCHM421_FinalProject/GOrilla Results/GO_prmt5_up.txt", delim="\t", col_names=TRUE)
+GO_mep50_down <- vroom("~/BCHM421_FinalProject0/GOrilla Results/GO_mep50_down.txt", delim="\t", col_names=TRUE)
+GO_mep50_up <- vroom("~/BCHM421_FinalProject0/GOrilla Results/GO_mep50_up.txt", delim="\t", col_names=TRUE)
+GO_prmt5_down <- vroom("~/BCHM421_FinalProject0/GOrilla Results/GO_prmt5_down.txt", delim="\t", col_names=TRUE)
+GO_prmt5_up <- vroom("~/BCHM421_FinalProject0/GOrilla Results/GO_prmt5_up.txt", delim="\t", col_names=TRUE)
 
 GO_mep50_down <- GO_mep50_down %>%
   mutate(Group = "wdr77_down")
@@ -98,6 +111,8 @@ GO_mep50_up
 GO_prmt5_down
 GO_prmt5_up
 
+GO_gene <- rbind(GO_mep50_down, GO_mep50_up, GO_prmt5_down, GO_prmt5_up)
+GO_gene
 ```
 ## Extracting GO gene symbols
 
@@ -152,9 +167,9 @@ mep50down_genes <- bind_rows(mep50down_genes, .id="GO_ID")
 
 mep50down_genes
 
-mep50_geneIndex <- mep50up_genes %>%
+geneIndex <- mep50up_genes %>%
   rbind(prmt5down_genes) %>%
   mutate(grouping = "mep50")
 
-mep50_geneIndex
+geneIndex
 ```
