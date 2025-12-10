@@ -1,0 +1,340 @@
+---
+title: "BCHM421_FinalProject0"
+author: "Group C"
+date: "2025-12-03"
+output:
+  html_document:
+  runtime: shiny
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r, results='hide', echo=FALSE}
+library(tidyverse)
+library(vroom)
+library(shiny)
+library(ggplot2)
+library(magrittr)
+library(DT)
+```
+
+```{r echo=FALSE, warning=FALSE}
+cpm_wide <- "/depot/pascuzz-cl/data/bchm_data/human/cpm_wide.txt"
+prmt5_results <- "/depot/pascuzz-cl/data/bchm_data/human/prmt5_results.txt"
+mep50_results <- "/depot/pascuzz-cl/data/bchm_data/human/mep50_results.txt"
+
+cpm <- vroom(file=file.path(cpm_wide), 
+                         delim="\t", 
+                         col_types=NULL)
+
+prmt5 <- vroom(file=file.path(prmt5_results), 
+                         delim="\t", 
+                         col_types="cnnnnfc")
+
+mep50 <- vroom(file=file.path(mep50_results), 
+                         delim="\t", 
+                         col_types="cnnnnfc")
+
+prmt5
+mep50
+```
+
+## Add silenced gene to RNAseq results
+
+```{r, echo=FALSE}
+prmt5 <- prmt5 %>%
+  mutate(silenced = "prmt5")
+
+mep50 <- mep50 %>%
+  mutate(silenced = "wdr77")
+
+RNAseq <- rbind(prmt5, mep50)
+RNAseq
+```
+## Make widget for RNAseq data table
+
+```{r, echo=FALSE}
+renderDataTable({
+  datatable(RNAseq,
+            filter = list(position = "top", clear = FALSE, plain = TRUE),
+            extensions = 'Buttons',
+            options = list(dom = 'Blfrtip',
+                           pageLength = 10,
+                           buttons = list(extend='collection',
+                                          buttons=c('csv', 'excel'),
+                                          text='Download'))
+  ) %>%
+    formatSignif(columns=c('logFC', 'logCPM', 'PValue', 'FDR'), digits=4)
+})
+```
+
+
+
+## Up regulated genes for GO from PRMT5 and MEP50
+
+```{r, echo=FALSE}
+up_genes_prmt5 <- prmt5 %>%
+  filter(tests == "1") %>%
+  dplyr::select(SYMBOL)
+up_genes_prmt5
+write_delim(up_genes_prmt5, "prmt5_up.txt", col_names = FALSE)
+
+up_genes_mep50 <- mep50 %>%
+  filter(tests == "1") %>%
+  dplyr::select(SYMBOL)
+up_genes_mep50
+write_delim(up_genes_mep50, "mep50_up.txt", col_names = FALSE)
+
+down_genes_prmt5 <- prmt5 %>%
+  filter(tests == "-1") %>%
+  dplyr::select(SYMBOL)
+down_genes_prmt5
+write_delim(down_genes_prmt5, "prmt5_down.txt", col_names = FALSE)
+
+down_genes_mep50 <- mep50 %>%
+  filter(tests == "-1") %>%
+  dplyr::select(SYMBOL)
+down_genes_prmt5
+write_delim(down_genes_mep50, "mep50_down.txt", col_names = FALSE)
+
+back_genes_prmt5 <- prmt5 %>%
+  dplyr::select(SYMBOL)
+write_delim(back_genes_prmt5, "prmt5_back.txt", col_names=FALSE)
+
+back_genes_mep50 <- mep50 %>%
+  dplyr::select(SYMBOL)
+write_delim(back_genes_mep50, "mep50_back.txt", col_names=FALSE)
+
+```
+
+## Importing GOrilla xls results
+
+```{r, echo=FALSE}
+
+GO_mep50_down <- vroom("~/BCHM421_FinalProject0/GOrilla Results/GO_mep50_down.txt", delim="\t", col_names=TRUE)
+GO_mep50_up <- vroom("~/BCHM421_FinalProject0/GOrilla Results/GO_mep50_up.txt", delim="\t", col_names=TRUE)
+GO_prmt5_down <- vroom("~/BCHM421_FinalProject0/GOrilla Results/GO_prmt5_down.txt", delim="\t", col_names=TRUE)
+GO_prmt5_up <- vroom("~/BCHM421_FinalProject0/GOrilla Results/GO_prmt5_up.txt", delim="\t", col_names=TRUE)
+
+GO_mep50_down <- GO_mep50_down %>%
+  mutate(Group = "wdr77_down")
+GO_mep50_up <- GO_mep50_up %>%
+  mutate(Group = "wdr77_up")
+GO_prmt5_up <- GO_prmt5_up %>%
+  mutate(Group = "prmt5_up")
+GO_prmt5_down <- GO_prmt5_down %>%
+  mutate(Group = "prmt5_down")
+
+GO_mep50_down
+GO_mep50_up
+GO_prmt5_down
+GO_prmt5_up
+
+GO_gene <- rbind(GO_mep50_down, GO_mep50_up, GO_prmt5_down, GO_prmt5_up)
+GO_gene
+```
+
+## Format GO tibble for widget creation
+
+```{r, echo=FALSE}
+GO_widget <- GO_gene %>%
+  rename(GO_ID = `GO Term`) %>%
+  rename(FDR = `FDR q-value`) %>%
+  select(GO_ID, Group, Description, FDR, Enrichment)
+
+GO_widget
+```
+
+## GO data table
+
+```{r, echo=FALSE}
+renderDataTable({
+  datatable(GO_widget,
+            filter = list(position = "top", clear = FALSE, plain = TRUE),
+            extensions = 'Buttons',
+            options = list(dom = 'Blfrtip',
+                           pageLength = 10,
+                           buttons = list(extend='collection',
+                                          buttons=c('csv', 'excel'),
+                                          text='Download'))
+  ) %>%
+    formatSignif(columns=c('FDR', 'Enrichment'), digits=4)
+})
+```
+
+
+## Extracting GO gene symbols
+
+```{r, echo=FALSE}
+#Function to extract gene symbols
+getGorillaSymbols <- function(genes){
+  require(dplyr)
+  require(magrittr)
+  genes %>% 
+    str_split(" - ", simplify=FALSE) %>%
+    c(recursive=TRUE) %>%
+    str_split(", ") %>%
+    sapply(tail, 1) %>%
+    str_trim("both") %>%
+    extract(1:(length(.) - 1)) %>%
+    str_remove("\\[") %>%
+    return(.)
+}
+
+prmt5up_genes <- lapply(GO_prmt5_up$Genes, getGorillaSymbols)
+names(prmt5up_genes) <- pull(GO_prmt5_up, `GO Term`)
+prmt5up_genes <- lapply(prmt5up_genes, function(x)(tibble(Symbol=x)))
+prmt5up_genes <- bind_rows(prmt5up_genes, .id="GO_ID")
+
+prmt5up_genes
+
+prmt5down_genes <- lapply(GO_prmt5_down$Genes, getGorillaSymbols)
+names(prmt5down_genes) <- pull(GO_prmt5_down, `GO Term`)
+prmt5down_genes <- lapply(prmt5down_genes, function(x)(tibble(Symbol=x)))
+prmt5down_genes <- bind_rows(prmt5down_genes, .id="GO_ID")
+
+prmt5down_genes
+
+prmt5_geneIndex <- prmt5up_genes %>%
+  rbind(prmt5down_genes) %>%
+  mutate(grouping = "prmt5")
+
+prmt5_geneIndex
+
+mep50up_genes <- lapply(GO_mep50_up$Genes, getGorillaSymbols)
+names(mep50up_genes) <- pull(GO_mep50_up, `GO Term`)
+mep50up_genes <- lapply(mep50up_genes, function(x)(tibble(Symbol=x)))
+mep50up_genes <- bind_rows(mep50up_genes, .id="GO_ID")
+
+
+mep50up_genes
+
+mep50down_genes <- lapply(GO_mep50_down$Genes, getGorillaSymbols)
+names(mep50down_genes) <- pull(GO_mep50_down, `GO Term`)
+mep50down_genes <- lapply(mep50down_genes, function(x)(tibble(Symbol=x)))
+mep50down_genes <- bind_rows(mep50down_genes, .id="GO_ID")
+
+mep50down_genes
+
+mep50_geneIndex <- mep50up_genes %>%
+  rbind(mep50down_genes) %>%
+  mutate(grouping = "mep50")
+
+geneIndex <- prmt5_geneIndex %>%
+  rbind(mep50_geneIndex) %>%
+  group_by(grouping)
+
+geneIndex
+```
+
+## Make multi-RNAseq symbol select graph
+
+```{r, echo = FALSE}
+selectInput(
+inputId = "symbol",
+label = "Select Symbol(s):",
+multiple = TRUE,
+choices = unique(RNAseq$SYMBOL)
+)
+
+# Filter tibble in terms of SYMBOL
+
+renderPlot({
+req(input$symbol)
+  
+RNAseq %>%
+  filter(SYMBOL %in% input$symbol) %>%
+  ggplot(aes(x = SYMBOL, y = logFC)) +
+  geom_col(aes(fill = silenced),
+           position = "dodge"
+  ) +
+  labs(
+    title = "Results for Select Gene",
+    y = "logFC",
+    x = "SYMBOL"
+  ) +
+  theme_gray()
+})
+```
+
+## to compare GO:ID gene stuff
+
+```{r, echo = FALSE}
+
+selectInput("go_selector", 
+            "Select a GO ID (start typing to find GO ID)", 
+            choices = unique(GO_gene$`GO Term`), 
+            multiple = FALSE, 
+            selected = "GO:0000041")
+
+inputPanel(
+  sliderInput(inputId = "max_genes", 
+              label = "Choose maximum number of genes.", 
+              min = 1, 
+              max = 50, 
+              value = 10),
+  downloadButton("download_plot", "Download Plot")
+)
+
+plot_reactive <- reactive({
+
+  req(input$go_selector)
+
+  all_go_genes <- bind_rows(
+    prmt5up_genes %>% mutate(experiment = "prmt5"),
+    prmt5down_genes %>% mutate(experiment = "prmt5"),
+    mep50up_genes %>% mutate(experiment = "wdr77"),
+    mep50down_genes %>% mutate(experiment = "wdr77")
+  )
+
+  target_symbols <- all_go_genes %>% 
+    filter(GO_ID == input$go_selector) %>% 
+    pull(Symbol) %>% 
+    unique()
+
+  plot_data <- RNAseq %>% 
+    filter(SYMBOL %in% target_symbols)
+
+  top_genes <- plot_data %>%
+    group_by(SYMBOL) %>%
+    summarize(max_change = max(abs(logFC))) %>%
+    arrange(desc(max_change)) %>%
+    slice_head(n = input$max_genes) %>%
+    pull(SYMBOL)
+
+  GO_column <- plot_data %>%
+    filter(SYMBOL %in% top_genes) %>%
+    ggplot(aes(x = reorder(SYMBOL, SYMBOL), y = logFC, fill = silenced)) +
+    geom_col(position = "dodge") + 
+    coord_flip() +
+    labs(title = paste("Results for Top", input$max_genes, "Genes for", input$go_selector),
+         x = "SYMBOL", 
+         y = "logFC") +
+    scale_fill_hue(labels = c("PRMT5", "WDR77")) +
+    theme_gray() +
+    theme(text = element_text(size = 14))
+  
+  return(GO_column)
+})
+
+
+renderPlot({
+  plot_reactive()
+})
+
+output$download_plot <- downloadHandler(
+  filename = function() {
+    clean_name <- gsub(":", "_", input$go_selector)
+    paste("GO_Analysis_", clean_name, ".png", sep = "")
+  },
+  content = function(file){
+    ggsave(file, plot = plot_reactive(), device = "png", width = 14, height = 8)
+  }
+)
+
+
+
+
+```
