@@ -18,7 +18,7 @@ library(shiny)
 library(ggplot2)
 library(magrittr)
 library(DT)
-load("~/BCHM421_FinalProject0/FinalProjectImage")
+load("ObjectSave.rda")
 ```
 
 <!-- ```{r} -->
@@ -276,7 +276,9 @@ plot_reactive <- reactive({
 
   req(input$go_selector)
 
-  target_symbols <- GO_gene %>% 
+
+
+  target_symbols <- geneIndex %>% 
     filter(GO_ID == input$go_selector) %>% 
     pull(Symbol) %>% 
     unique()
