@@ -20,6 +20,7 @@ library(magrittr)
 library(DT)
 library(bslib)
 library(htmltools)
+library(pheatmap)
 load("ObjectSave.rda")
 ```
 
@@ -367,9 +368,11 @@ showModal(
 modalDialog(
 title = "Gene ontology data table.",
 easyClose = TRUE,
-"The user can interact with this data via the search bars, which allow them to type and look up any of the displayed variables (e.g, GO_ID, Group, Description, FDR, and Enrichment). The user can also use the single search bar above the interactive data frame to return results related to the user's request. Additionally, the user can select how many entries to display on the screen via the drop-down list. This goes up to 100 entries. Lastly, the user can export the data table in two different ways—as a .csv or an Excel file.
+"The user can interact with this data via the search bar and filter drop downs, which allow them to type, or select, any of the displayed variables (e.g, GO_ID, Group, Description, FDR, and Enrichment). With the search bar above the interactive data frame, users can look up results across all columns. Additionally, the user can select how many entries to display on the screen via the drop-down list. This goes up to 100 entries. Lastly, the user can export the data table in two different ways—as a .csv or an Excel file.
 
-The 'GO_ID' refers to the Gene Ontology identification. The 'Group' variable indicates whether a gene is up- or down-regulated by PRMT5 or WDR77. The 'Description' variable summarizes the biological process, molecular function, or cellular component of the gene it represents. The 'FDR' variable is the adjusted p-value that estimates the proportion of significant results that may be false positives. The 'Enrichment' variable indicates the fold-enrichment value representing how a GO term is compared to what would be expected by chance."
+The **GO_ID** refers to the Gene Ontology identification. The **Group** variable indicates whether a gene is up- or down-regulated by PRMT5 or WDR77. The **Description** variable summarizes the biological process, molecular function, or cellular component of the gene it represents. The **FDR** variable is the adjusted p-value that estimates the proportion of significant results that may be false positives. The **Enrichment** variable indicates the fold-enrichment value representing how a GO term is compared to what would be expected by chance.
+
+**Green** coloring under the *Enrichment* category represents low enrichment, while **Orange** represents strong enrichment. **Green** coloring under the *FDR* category represents low significance, while **Orange** represents strong significance."
 )
 )
 }) |>
@@ -520,7 +523,7 @@ renderPlot({
 }, 
 res = 150, 
 height = function(){
-  max(1200, nrow(heat_genes()) * 12)
+  max(1200, nrow(50) * 12)
 }, 
 width = 1200
 )
