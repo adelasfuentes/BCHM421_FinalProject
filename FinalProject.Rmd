@@ -2,9 +2,8 @@
 title: "BCHM421_FinalProject0"
 author: "Group C"
 date: "2025-12-03"
-output:
-  html_document:
-  runtime: shiny
+output: html_document
+runtime: shiny
 ---
 
 ```{r setup, include=FALSE}
@@ -22,7 +21,15 @@ library(bslib)
 library(htmltools)
 library(pheatmap)
 library(ggsci)
-load("ObjectSave.rda")
+library(plotly)
+load("FinalProjectImage.rda")
+```
+
+```{r, echo=FALSE}
+ geneIndex <- geneIndex %>%
+   ungroup() %>%
+   select(-grouping) %>%
+   distinct()
 ```
 
 ## Make widget for RNAseq data table
@@ -56,7 +63,8 @@ renderDataTable({
                            pageLength = 10,
                            buttons = list(extend='collection',
                                           buttons=c('csv', 'excel'),
-                                          text='Download'))
+                                          text='Download')),
+            selection = "multiple"
   ) %>%
     formatSignif(columns=c('logFC', 'logCPM', 'PValue', 'FDR'), digits=4)
 })
@@ -64,16 +72,87 @@ renderDataTable({
 
 ## Make multi-RNAseq symbol select graph
 ```{r, echo = FALSE}
+# inputPanel(
+#   selectInput(
+#     inputId = "symbol",
+#     label = "Select Symbol(s):",
+#     multiple = TRUE,
+#     choices = unique(RNAseq$SYMBOL)
+#   ),
+#   actionButton("show_RNAseq_plot_help_symbol", "?"),
+#   downloadButton("download_symbol_plot", "Download Plot")
+# )
+
+
+
+# symbol_plot_reactive <- reactive({
+#   req(input$symbol)
+#   
+#   symbol_plot <- RNAseq %>%
+#     filter(SYMBOL %in% input$symbol) %>%
+#     ggplot(aes(x = SYMBOL, y = logFC)) +
+#     geom_col(aes(fill = silenced),
+#              position = "dodge"
+#     ) +
+#     labs(
+#       title = "Results for Select Gene",
+#       y = "logFC",
+#       x = "SYMBOL"
+#     ) +
+#     theme_gray()
+# 
+#   return(symbol_plot)
+# })
+# 
+# renderPlot({
+#   symbol_plot_reactive()
+# })
+# 
+# output$download_symbol_plot <- downloadHandler(
+#   filename = function() {
+#     name_suffix <- if(length(input$symbol) > 1) "Multi_Gene" else input$symbol[1]
+#     paste("Gene_Expression_", name_suffix, ".png", sep = "")
+#   },
+#   content = function(file) {
+#     ggsave(file, plot = symbol_plot_reactive(), device = "png", width = 10, height = 6)
+#   }
+# )
+```
+
+```{r, echo=FALSE}
+# used inputPanel() command to set widget to panel
+#used selectizeInput() to set the dropdown menu widget so that the user can begin typing a gene name and options will appear as opposed to loading all the genes in a dropdown menu at once
+# inputPanel(
+#       selectizeInput(
+#         inputId  = "selected_genes",                
+#         label    = "Select Gene(s) to Plot:",
+#         choices  = sort(unique(RNAseq$SYMBOL)),      
+#         selected = c("PRMT5", "WDR77"),
+#         multiple = TRUE
+#       ),
+# # used mainPanel() command to set output 
+#     mainPanel(
+#       plotlyOutput("gene_expression_plot")             
+#     ),
+#  actionButton("show_RNAseq_plot_help_symbol", "?"),
+#   downloadButton("download_symbol_plot", "Download Plot")
+#   )
+
 inputPanel(
-  selectInput(
-    inputId = "symbol",
-    label = "Select Symbol(s):",
-    multiple = TRUE,
-    choices = unique(RNAseq$SYMBOL)
+  selectizeInput(
+    inputId  = "selected_genes",
+    label    = "Select Gene(s) to Plot:",
+    choices  = sort(unique(RNAseq$SYMBOL)),
+    selected = c("PRMT5", "WDR77"),
+    multiple = TRUE
   ),
   actionButton("show_RNAseq_plot_help_symbol", "?"),
   downloadButton("download_symbol_plot", "Download Plot")
 )
+
+# Put plot in its own full-width area:
+plotlyOutput("gene_expression_plot", height = "500px")
+
 
 observeEvent(input$show_RNAseq_plot_help_symbol, {
   showModal(
@@ -84,44 +163,46 @@ observeEvent(input$show_RNAseq_plot_help_symbol, {
       tags$ul(
         tags$li(tags$b("Log Fold-Change:"), " e.g., a 2-fold change is represented by +1 on the y-axis, whereas a 0.5-fold change, meaning expression is halved, is represented by -1 on the y-axis."),
         tags$li(tags$b("Symbol Selector:"), " The symbol selected by the user via the dropdown box represents the gene that was silenced for that given trial."),
-        tags$li(tags$b("Color Coding:"), " Upon selecting this gene, the user can see both the change in expression of the PRMT5 gene (represented by the pink column) and the change in expression of the WDR77 gene (represented by the blue column) from baseline.")
+        tags$li(tags$b("Color Coding:"), " Upon selecting this gene, the user can see both the change in expression of the PRMT5 gene (represented by the red column) and the change in expression of the WDR77 gene (represented by the orange column) from baseline.")
       )
     )
   )
 })
+```
 
-symbol_plot_reactive <- reactive({
-  req(input$symbol)
+```{r, echo=FALSE}
+# used renderPlot() so that Shiny recognizes plot
+#renderPlot({
+# filtered SYMBOL out of RNAseq, but only those symbols within our selected genes group
+output$gene_expression_plot <- renderPlotly({
   
-  symbol_plot <- RNAseq %>%
-    filter(SYMBOL %in% input$symbol) %>%
+  p <- RNAseq %>%                               
+    filter(SYMBOL %in% input$selected_genes) %>%
     ggplot(aes(x = SYMBOL, y = logFC)) +
-    geom_col(aes(fill = silenced),
-             position = "dodge"
-    ) +
+    geom_col(aes(fill = silenced), position = "dodge") +
     labs(
-      title = "Results for Select Gene",
+      title = paste(
+        "Results for Selected Silenced Genes (N =",
+        length(input$selected_genes), ")"
+      ),
       y = "logFC",
       x = "SYMBOL"
     ) +
-    theme_gray()
-
-  return(symbol_plot)
+    scale_fill_flatui() +
+    theme_classic(base_size = 14) + 
+    theme(
+      plot.background   = element_rect(fill = "#1e1e1e", color = NA),
+      panel.background  = element_rect(fill = "#1e1e1e", color = NA),
+      text              = element_text(color = "white"),
+      axis.text         = element_text(color = "white"),
+      legend.background = element_rect(fill = "#1e1e1e", color = NA),
+      legend.key        = element_rect(fill = "#1e1e1e", color = NA),
+      legend.title      = element_text(color = "white"),
+      legend.text       = element_text(color = "white")
+    )
+  
+  ggplotly(p)
 })
-
-renderPlot({
-  symbol_plot_reactive()
-})
-
-output$download_symbol_plot <- downloadHandler(
-  filename = function() {
-    name_suffix <- if(length(input$symbol) > 1) "Multi_Gene" else input$symbol[1]
-    paste("Gene_Expression_", name_suffix, ".png", sep = "")
-  },
-  content = function(file) {
-    ggsave(file, plot = symbol_plot_reactive(), device = "png", width = 10, height = 6)
-  }
-)
 ```
 
 ## Format GO tibble for widget creation
@@ -219,6 +300,8 @@ inputPanel(
   downloadButton("download_column_plot", "Download Plot")
 )
 
+plotlyOutput("go_plot", height = "650px")
+
 observeEvent(input$show_GO_ID_plot_help, {
   showModal(
     modalDialog(
@@ -246,6 +329,7 @@ plot_reactive <- reactive({
   plot_data <- RNAseq %>% 
     filter(SYMBOL %in% target_symbols)
 
+  # Select top variable genes
   top_genes <- plot_data %>%
     group_by(SYMBOL) %>%
     summarize(max_change = max(abs(logFC))) %>%
@@ -253,24 +337,31 @@ plot_reactive <- reactive({
     slice_head(n = input$max_genes) %>%
     pull(SYMBOL)
 
+  # Build ggplot
   GO_column <- plot_data %>%
     filter(SYMBOL %in% top_genes) %>%
     ggplot(aes(x = reorder(SYMBOL, SYMBOL), y = logFC, fill = silenced)) +
     geom_col(position = "dodge") + 
     coord_flip() +
-    labs(title = paste("Results for Top", input$max_genes, "Genes for", input$go_selector),
-         x = "SYMBOL", 
-         y = "logFC") +
+    labs(
+      title = paste("Results for Top", input$max_genes, "Genes for", input$go_selector),
+      x = "SYMBOL", 
+      y = "logFC"
+    ) +
     scale_fill_hue(labels = c("PRMT5", "WDR77")) +
-    theme_gray() +
-    theme(text = element_text(size = 14))
-  
-  return(GO_column)
+    theme_gray(base_size = 14)
+
+  GO_column
 })
 
 
-renderPlot({
-  plot_reactive()
+
+output$go_plot <- renderPlotly({
+  ggplotly(plot_reactive()) %>%
+    layout(
+      margin = list(l = 100),    # Prevent squishing on left axis
+      hoverlabel = list(font = list(size = 14))
+    )
 })
 
 output$download_column_plot <- downloadHandler(
@@ -289,15 +380,7 @@ output$download_column_plot <- downloadHandler(
 ## Heatmap widget
 
 ```{r, echo=FALSE}
-go_to_symbols <- mep50_geneIndex %>%
-  rbind(prmt5_geneIndex) %>%
-  select(-grouping)
-
-go_to_symbols
-```
-
-```{r, echo=FALSE}
-GOIDs <- go_to_symbols %>%
+GOIDs <- geneIndex %>%
   distinct(GO_ID) %>%
   pull(GO_ID)
 ```
@@ -344,7 +427,7 @@ observeEvent(input$show_heatmap_help, {
 heatmap_data <- reactive({
   req(input$GOID, input$distanceSam, input$distanceGene, input$linkage, input$scale)
   
-  selected_genes <- go_to_symbols %>%
+  selected_genes <- geneIndex %>%
     filter(GO_ID %in% input$GOID) %>%
     pull(Symbol) %>%
     unique()
@@ -368,7 +451,7 @@ renderPlot({
 }, 
 res = 150, 
 height = function(){
-  max(1200, nrow(heatmap_data()))
+  max(1200, nrow(heatmap_data()) * 12)
 }, 
 width = 1200
 )
