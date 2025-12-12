@@ -21,263 +21,33 @@ library(DT)
 library(bslib)
 library(htmltools)
 library(pheatmap)
+library(ggsci)
 load("ObjectSave.rda")
 ```
 
-# ```{r, echo=FALSE}
-# tags$style(HTML("
-# .modal-backdrop.show {
-# opacity: 0.6 !important;
-# }
-# .modal-dialog {
-# margin-top: 10vh !important;
-# }
-# "))
-# ```
-
-<!-- ```{r} -->
-
-<!-- cpm_wide <- "/depot/pascuzz-cl/data/bchm_data/human/cpm_wide.txt" -->
-
-<!-- prmt5_results <- "/depot/pascuzz-cl/data/bchm_data/human/prmt5_results.txt" -->
-
-<!-- mep50_results <- "/depot/pascuzz-cl/data/bchm_data/human/mep50_results.txt" -->
-
-<!-- cpm <- vroom(file=file.path(cpm_wide),  -->
-
-<!--                          delim="\t",  -->
-
-<!--                          col_types=NULL) -->
-
-<!-- prmt5 <- vroom(file=file.path(prmt5_results),  -->
-
-<!--                          delim="\t",  -->
-
-<!--                          col_types="cnnnnfc") -->
-
-<!-- mep50 <- vroom(file=file.path(mep50_results),  -->
-
-<!--                          delim="\t",  -->
-
-<!--                          col_types="cnnnnfc") -->
-
-<!-- prmt5 -->
-
-<!-- mep50 -->
-
-<!-- ``` -->
-
-<!-- ## Add silenced gene to RNAseq results -->
-
-<!-- ```{r} -->
-
-<!-- prmt5 <- prmt5 %>% -->
-
-<!--   mutate(silenced = "prmt5") -->
-
-<!-- mep50 <- mep50 %>% -->
-
-<!--   mutate(silenced = "wdr77") -->
-
-<!-- RNAseq <- rbind(prmt5, mep50) -->
-
-<!-- RNAseq -->
-
-<!-- ``` -->
-
-<!-- ## Up regulated genes for GO from PRMT5 and MEP50 -->
-
-<!-- ```{r} -->
-
-<!-- up_genes_prmt5 <- prmt5 %>% -->
-
-<!--   filter(tests == "1") %>% -->
-
-<!--   dplyr::select(SYMBOL) -->
-
-<!-- up_genes_prmt5 -->
-
-<!-- write_delim(up_genes_prmt5, "prmt5_up.txt", col_names = FALSE) -->
-
-<!-- up_genes_mep50 <- mep50 %>% -->
-
-<!--   filter(tests == "1") %>% -->
-
-<!--   dplyr::select(SYMBOL) -->
-
-<!-- up_genes_mep50 -->
-
-<!-- write_delim(up_genes_mep50, "mep50_up.txt", col_names = FALSE) -->
-
-<!-- down_genes_prmt5 <- prmt5 %>% -->
-
-<!--   filter(tests == "-1") %>% -->
-
-<!--   dplyr::select(SYMBOL) -->
-
-<!-- down_genes_prmt5 -->
-
-<!-- write_delim(down_genes_prmt5, "prmt5_down.txt", col_names = FALSE) -->
-
-<!-- down_genes_mep50 <- mep50 %>% -->
-
-<!--   filter(tests == "-1") %>% -->
-
-<!--   dplyr::select(SYMBOL) -->
-
-<!-- down_genes_prmt5 -->
-
-<!-- write_delim(down_genes_mep50, "mep50_down.txt", col_names = FALSE) -->
-
-<!-- back_genes_prmt5 <- prmt5 %>% -->
-
-<!--   dplyr::select(SYMBOL) -->
-
-<!-- write_delim(back_genes_prmt5, "prmt5_back.txt", col_names=FALSE) -->
-
-<!-- back_genes_mep50 <- mep50 %>% -->
-
-<!--   dplyr::select(SYMBOL) -->
-
-<!-- write_delim(back_genes_mep50, "mep50_back.txt", col_names=FALSE) -->
-
-<!-- ``` -->
-
-<!-- ## Importing GOrilla xls results -->
-
-<!-- ```{r} -->
-
-<!-- GO_mep50_down <- vroom("~/BCHM421_FinalProject0/GOrilla Results/GO_mep50_down.txt", delim="\t", col_names=TRUE) -->
-
-<!-- GO_mep50_up <- vroom("~/BCHM421_FinalProject0/GOrilla Results/GO_mep50_up.txt", delim="\t", col_names=TRUE) -->
-
-<!-- GO_prmt5_down <- vroom("~/BCHM421_FinalProject0/GOrilla Results/GO_prmt5_down.txt", delim="\t", col_names=TRUE) -->
-
-<!-- GO_prmt5_up <- vroom("~/BCHM421_FinalProject0/GOrilla Results/GO_prmt5_up.txt", delim="\t", col_names=TRUE) -->
-
-<!-- GO_mep50_down <- GO_mep50_down %>% -->
-
-<!--   mutate(Group = "wdr77_down") -->
-
-<!-- GO_mep50_up <- GO_mep50_up %>% -->
-
-<!--   mutate(Group = "wdr77_up") -->
-
-<!-- GO_prmt5_up <- GO_prmt5_up %>% -->
-
-<!--   mutate(Group = "prmt5_up") -->
-
-<!-- GO_prmt5_down <- GO_prmt5_down %>% -->
-
-<!--   mutate(Group = "prmt5_down") -->
-
-<!-- GO_mep50_down -->
-
-<!-- GO_mep50_up -->
-
-<!-- GO_prmt5_down -->
-
-<!-- GO_prmt5_up -->
-
-<!-- GO_gene <- rbind(GO_mep50_down, GO_mep50_up, GO_prmt5_down, GO_prmt5_up) -->
-
-<!-- GO_gene -->
-
-<!-- ``` -->
-
-<!-- ## Extracting GO gene symbols -->
-
-<!-- ```{r} -->
-
-<!-- #Function to extract gene symbols -->
-
-<!-- getGorillaSymbols <- function(genes){ -->
-
-<!--   require(dplyr) -->
-
-<!--   require(magrittr) -->
-
-<!--   genes %>%  -->
-
-<!--     str_split(" - ", simplify=FALSE) %>% -->
-
-<!--     c(recursive=TRUE) %>% -->
-
-<!--     str_split(", ") %>% -->
-
-<!--     sapply(tail, 1) %>% -->
-
-<!--     str_trim("both") %>% -->
-
-<!--     extract(1:(length(.) - 1)) %>% -->
-
-<!--     str_remove("\\[") %>% -->
-
-<!--     return(.) -->
-
-<!-- } -->
-
-<!-- prmt5up_genes <- lapply(GO_prmt5_up$Genes, getGorillaSymbols) -->
-
-<!-- names(prmt5up_genes) <- pull(GO_prmt5_up, `GO Term`) -->
-
-<!-- prmt5up_genes <- lapply(prmt5up_genes, function(x)(tibble(Symbol=x))) -->
-
-<!-- prmt5up_genes <- bind_rows(prmt5up_genes, .id="GO_ID") -->
-
-<!-- prmt5up_genes -->
-
-<!-- prmt5down_genes <- lapply(GO_prmt5_down$Genes, getGorillaSymbols) -->
-
-<!-- names(prmt5down_genes) <- pull(GO_prmt5_down, `GO Term`) -->
-
-<!-- prmt5down_genes <- lapply(prmt5down_genes, function(x)(tibble(Symbol=x))) -->
-
-<!-- prmt5down_genes <- bind_rows(prmt5down_genes, .id="GO_ID") -->
-
-<!-- prmt5down_genes -->
-
-<!-- prmt5_geneIndex <- prmt5up_genes %>% -->
-
-<!--   rbind(prmt5down_genes) %>% -->
-
-<!--   mutate(grouping = "prmt5") -->
-
-<!-- prmt5_geneIndex -->
-
-<!-- mep50up_genes <- lapply(GO_mep50_up$Genes, getGorillaSymbols) -->
-
-<!-- names(mep50up_genes) <- pull(GO_mep50_up, `GO Term`) -->
-
-<!-- mep50up_genes <- lapply(mep50up_genes, function(x)(tibble(Symbol=x))) -->
-
-<!-- mep50up_genes <- bind_rows(mep50up_genes, .id="GO_ID") -->
-
-<!-- mep50up_genes -->
-
-<!-- mep50down_genes <- lapply(GO_mep50_down$Genes, getGorillaSymbols) -->
-
-<!-- names(mep50down_genes) <- pull(GO_mep50_down, `GO Term`) -->
-
-<!-- mep50down_genes <- lapply(mep50down_genes, function(x)(tibble(Symbol=x))) -->
-
-<!-- mep50down_genes <- bind_rows(mep50down_genes, .id="GO_ID") -->
-
-<!-- mep50down_genes -->
-
-<!-- geneIndex <- mep50up_genes %>% -->
-
-<!--   rbind(prmt5down_genes) %>% -->
-
-<!--   mutate(grouping = "mep50") -->
-
-<!-- geneIndex -->
-
-<!-- ``` -->
-
 ## Make widget for RNAseq data table
-
 ```{r, echo=FALSE}
+
+actionButton("show_RNAseq_table_help", "?")
+
+observeEvent(input$show_RNAseq_table_help, {
+  showModal(
+    modalDialog(
+      title = "RNA Seq data table",
+      easyClose = TRUE,
+tags$p("This table presents the complete differential gene expression results. Users can search for specific gene symbols using the search bar or use the column filters to identify genes meeting specific statistical thresholds (e.g., FDR < 0.05)."),
+      tags$p("Key columns include:"),
+      tags$ul(
+        tags$li(tags$b("logFC (Log2 Fold Change):"), " Represents the magnitude and direction of gene expression change. Positive values indicate upregulation, while negative values indicate downregulation compared to the control."),
+        tags$li(tags$b("logCPM (Log Counts Per Million):"), " Indicates the average expression level (abundance) of the gene across the samples."),
+        tags$li(tags$b("PValue & FDR:"), " Statistical measures of significance. The FDR (False Discovery Rate) is the P-value adjusted for multiple testing; values below 0.05 are typically considered significant."),
+        tags$li(tags$b("Silenced:"), " Indicates which gene (PRMT5 or WDR77) was knocked down in the experiment.")
+      ),
+      tags$p("The entire dataset or filtered subsets can be exported using the 'Download' button as either a CSV or Excel file.")
+    )
+  )
+})
+
 renderDataTable({
   datatable(RNAseq,
             filter = list(position = "top", clear = FALSE, plain = TRUE),
@@ -293,55 +63,65 @@ renderDataTable({
 ```
 
 ## Make multi-RNAseq symbol select graph
-```{r, echo=FALSE}
-ui <- page_fixed(
-actionButton("show", "?")
-)
-
-server <- function(input, output, session) {
-
-observe({
-showModal(
-modalDialog(
-title = "Column plog charting logFC values for select genes base on the RNAseq data table.",
-easyClose = TRUE,
-"The following column plot displays the log of the fold-change (e.g., a 2-fold change is represented by +1 on the y-axis, whereas a 0.5-fold change, meaning expression is halved, is represnted by -1 on the y-axis) of the expression of our genes of interest, PRMT5 and WDR77. The symbol selected by the user via the dropdown box represents the gene that was silenced for that given trial. Upon selecting this gene, the user can see both the change in expression of the PRMT5 gene (represented by the pink column) and the change in expression of the WDR77 gene (represented by the blue column) from baseline. Users can select multiple silenced genes to observe the PRMT5 and WDR77 expression results of multiple trials."
-)
-)
-}) |>
-bindEvent(input$show)
-
-}
-
-shinyApp(ui, server)
-```
-
 ```{r, echo = FALSE}
-selectInput(
-inputId = "symbol",
-label = "Select Symbol(s):",
-multiple = TRUE,
-choices = unique(RNAseq$SYMBOL)
+inputPanel(
+  selectInput(
+    inputId = "symbol",
+    label = "Select Symbol(s):",
+    multiple = TRUE,
+    choices = unique(RNAseq$SYMBOL)
+  ),
+  actionButton("show_RNAseq_plot_help_symbol", "?"),
+  downloadButton("download_symbol_plot", "Download Plot")
 )
 
-# Filter tibble in terms of SYMBOL
+observeEvent(input$show_RNAseq_plot_help_symbol, {
+  showModal(
+    modalDialog(
+      title = "Column plot charting logFC values for select genes based on the RNAseq data table.",
+      easyClose = TRUE,
+      tags$p("The following column plot displays the log of the fold-change of the expression of our genes of interest, PRMT5 and WDR77. Key details include:"),
+      tags$ul(
+        tags$li(tags$b("Log Fold-Change:"), " e.g., a 2-fold change is represented by +1 on the y-axis, whereas a 0.5-fold change, meaning expression is halved, is represented by -1 on the y-axis."),
+        tags$li(tags$b("Symbol Selector:"), " The symbol selected by the user via the dropdown box represents the gene that was silenced for that given trial."),
+        tags$li(tags$b("Color Coding:"), " Upon selecting this gene, the user can see both the change in expression of the PRMT5 gene (represented by the pink column) and the change in expression of the WDR77 gene (represented by the blue column) from baseline.")
+      )
+    )
+  )
+})
+
+symbol_plot_reactive <- reactive({
+  req(input$symbol)
+  
+  symbol_plot <- RNAseq %>%
+    filter(SYMBOL %in% input$symbol) %>%
+    ggplot(aes(x = SYMBOL, y = logFC)) +
+    geom_col(aes(fill = silenced),
+             position = "dodge"
+    ) +
+    labs(
+      title = "Results for Select Gene",
+      y = "logFC",
+      x = "SYMBOL"
+    ) +
+    theme_gray()
+
+  return(symbol_plot)
+})
 
 renderPlot({
-req(input$symbol)
-  
-RNAseq %>%
-  filter(SYMBOL %in% input$symbol) %>%
-  ggplot(aes(x = SYMBOL, y = logFC)) +
-  geom_col(aes(fill = silenced),
-           position = "dodge"
-  ) +
-  labs(
-    title = "Results for Select Gene",
-    y = "logFC",
-    x = "SYMBOL"
-  ) +
-  theme_gray()
+  symbol_plot_reactive()
 })
+
+output$download_symbol_plot <- downloadHandler(
+  filename = function() {
+    name_suffix <- if(length(input$symbol) > 1) "Multi_Gene" else input$symbol[1]
+    paste("Gene_Expression_", name_suffix, ".png", sep = "")
+  },
+  content = function(file) {
+    ggsave(file, plot = symbol_plot_reactive(), device = "png", width = 10, height = 6)
+  }
+)
 ```
 
 ## Format GO tibble for widget creation
@@ -356,50 +136,70 @@ GO_widget
 ```
 
 ## GO data table
-```{r}
-ui <- page_fixed(
-actionButton("show", "?")
-)
+```{r, echo=FALSE}
 
-server <- function(input, output, session) {
+actionButton("show_GO_ID_table_help", "?")
 
-observe({
-showModal(
-modalDialog(
-title = "Gene ontology data table.",
-easyClose = TRUE,
-"The user can interact with this data via the search bar and filter drop downs, which allow them to type, or select, any of the displayed variables (e.g, GO_ID, Group, Description, FDR, and Enrichment). With the search bar above the interactive data frame, users can look up results across all columns. Additionally, the user can select how many entries to display on the screen via the drop-down list. This goes up to 100 entries. Lastly, the user can export the data table in two different ways—as a .csv or an Excel file.
+observeEvent(input$show_GO_ID_table_help, {
+  showModal(
+    modalDialog(
+      title = "Gene Ontology Data Table",
+      easyClose = TRUE,
+      tags$p("The user can interact with this data via the search bar and filter drop downs, allowing them to type or select any variable. Users can also select how many entries to display (up to 100) and export the table as .csv or Excel files."),
+      tags$p("Key columns include:"),
+      tags$ul(
+        tags$li(tags$b("GO_ID:"), " Refers to the Gene Ontology identification."),
+        tags$li(tags$b("Group:"), " Indicates whether a gene is up- or down-regulated by PRMT5 or WDR77."),
+        tags$li(tags$b("Description:"), " Summarizes the biological process, molecular function, or cellular component."),
+        tags$li(tags$b("FDR:"), " The adjusted p-value estimating the proportion of false positives."),
+        tags$li(tags$b("Enrichment:"), " Indicates the fold-enrichment value compared to chance.")
+      )
+    )
+  )
+})
 
-The **GO_ID** refers to the Gene Ontology identification. The **Group** variable indicates whether a gene is up- or down-regulated by PRMT5 or WDR77. The **Description** variable summarizes the biological process, molecular function, or cellular component of the gene it represents. The **FDR** variable is the adjusted p-value that estimates the proportion of significant results that may be false positives. The **Enrichment** variable indicates the fold-enrichment value representing how a GO term is compared to what would be expected by chance.
-
-**Green** coloring under the *Enrichment* category represents low enrichment, while **Orange** represents strong enrichment. **Green** coloring under the *FDR* category represents low significance, while **Orange** represents strong significance."
-)
-)
-}) |>
-bindEvent(input$show)
-
-}
-
-shinyApp(ui, server)
 ```
 
+```{r, echo=FALSE}
+inputPanel(selectInput("filterGO_ID", "Select GO ID:",
+            choices = c("All", unique(GO_widget$GO_ID)),
+            selected = "All"),
+            selectInput("filterGroup", "Select Group:",
+            choices = c("All", unique(GO_widget$Group)),
+            selected = "All"))
+```
+
+```{r, echo=FALSE}
+filteredData <- reactive({
+  data <- GO_widget
+  if (input$filterGroup != "All")
+    {data <- subset(data, Group == input$filterGroup)}
+  if (input$filterGO_ID != "All") 
+    {data <- subset(data, GO_ID == input$filterGO_ID)}
+  data})
+```
 
 ```{r, echo=FALSE}
 renderDataTable({
-  datatable(GO_widget,
-            filter = list(position = "top", clear = FALSE, plain = TRUE),
-            extensions = 'Buttons',
-            options = list(dom = 'Blfrtip',
-                           pageLength = 10,
-                           buttons = list(extend='collection',
-                                          buttons=c('csv', 'excel'),
-                                          text='Download'))
-  ) %>%
-    formatSignif(columns=c('FDR', 'Enrichment'), digits=4)
-})
+  data <- filteredData()
+   if (nrow(data) == 0) {
+    return(datatable(data.frame(Message = "No data for this selection")))}
+  pal_enrichment <- pal_frontiers("default")(5)
+  pal_FDR <- pal_frontiers("default")(5)
+  cuts1 <- quantile(data$Enrichment, probs = seq(0, 1, length.out = length(pal_enrichment)))[-1]
+  cuts2 <- quantile(data$FDR, probs = seq(0, 1, length.out = length(pal_FDR)))[-1]
+datatable(data,
+          filter = "none",
+          extensions = "Buttons",
+          options = list(dom = "Blfrtip", pageLength = 10, buttons = list(extend = "collection",
+                                                                          buttons = c("csv","excel"),
+                                                                          text = "Download"))) %>%
+  formatStyle("Enrichment", backgroundColor = styleInterval(cuts1, values = rev(pal_enrichment))) %>%
+  formatStyle("FDR", backgroundColor = styleInterval(cuts2, values = rev(pal_FDR))) %>% 
+  formatSignif(columns=c("FDR","Enrichment"), digits=4)})
 ```
 
-## to compare <GO:ID> gene stuff
+## GO ID Gene Expression Plot
 
 ```{r, echo = FALSE}
 
@@ -415,14 +215,28 @@ inputPanel(
               min = 1, 
               max = 50, 
               value = 10),
-  downloadButton("download_plot", "Download Plot")
+  actionButton("show_GO_ID_plot_help", "?"),
+  downloadButton("download_column_plot", "Download Plot")
 )
+
+observeEvent(input$show_GO_ID_plot_help, {
+  showModal(
+    modalDialog(
+      title = "Column plot charting logFC values for select genes based on the GO ID.",
+      easyClose = TRUE,
+      tags$p("The following column plot displays the log of the fold-change of the expression of our genes of interest, PRMT5 and WDR77. Key details include:"),
+      tags$ul(
+        tags$li(tags$b("Log Fold-Change:"), " e.g., a 2-fold change is represented by +1 on the y-axis, whereas a 0.5-fold change (halved expression) is represented by -1."),
+        tags$li(tags$b("Gene Selection:"), " The genes displayed are determined by the selected GO ID."),
+        tags$li(tags$b("Color Coding:"), " Pink columns represent the change in expression when PRMT5 is silenced; Blue columns represent the change when WDR77 is silenced.")
+      )
+    )
+  )
+})
 
 plot_reactive <- reactive({
 
   req(input$go_selector)
-
-
 
   target_symbols <- geneIndex %>% 
     filter(GO_ID == input$go_selector) %>% 
@@ -459,7 +273,7 @@ renderPlot({
   plot_reactive()
 })
 
-output$download_plot <- downloadHandler(
+output$download_column_plot <- downloadHandler(
   filename = function() {
     clean_name <- gsub(":", "_", input$go_selector)
     paste("GO_Analysis_", clean_name, ".png", sep = "")
@@ -493,28 +307,59 @@ cpm_mat <- as.matrix(cpm)
 ```
 
 ```{r, echo=FALSE}
-selectInput("GOID", "Select one or more GOIDs. Start typing...", choices = GOIDs, multiple = TRUE, selected = "GO:0000041", selectize = TRUE)
-selectInput("clSam", "Cluster by Sample?", choices = c("TRUE", "FALSE"), selected = "FALSE", selectize = TRUE)
-selectInput("clGene", "Cluster by Gene?", choices = c("TRUE", "FALSE"), selected = "FALSE", selectize = TRUE)
-selectInput("distanceSam", "Distance Method for Samples", choices = c("euclidean", "manhattan"), selected = "euclidean", selectize = TRUE)
-selectInput("distanceGene", "Distance Method for Genes", choices = c("euclidean", "manhattan"), selected = "euclidean", selectize = TRUE)
-selectInput("linkage", "Linkage Method for All Clustering", choices = c("single", "complete", "average"), selected= "average", selectize = TRUE)
-selectInput("scale", "Method of Data Scaling (Row for Gene, Column for Sample)", choices = c("none", "row", "column"), selected = "none", selectize = TRUE)
+inputPanel(
+  selectInput("GOID", "Select one or more GOIDs. Start typing...", choices = GOIDs, multiple = TRUE, selected = "GO:0000041", selectize = TRUE),
+  selectInput("clSam", "Cluster by Sample?", choices = c("TRUE", "FALSE"), selected = "FALSE", selectize = TRUE),
+  selectInput("clGene", "Cluster by Gene?", choices = c("TRUE", "FALSE"), selected = "FALSE", selectize = TRUE),
+  selectInput("distanceSam", "Distance Method for Samples", choices = c("euclidean", "manhattan"), selected = "euclidean", selectize = TRUE),
+  selectInput("distanceGene", "Distance Method for Genes", choices = c("euclidean", "manhattan"), selected = "euclidean", selectize = TRUE),
+  selectInput("linkage", "Linkage Method for All Clustering", choices = c("single", "complete", "average"), selected= "average", selectize = TRUE),
+  selectInput("scale", "Method of Data Scaling", choices = c("none", "row", "column"), selected = "none", selectize = TRUE),
+  
+  actionButton("show_heatmap_help", "?"),
+  downloadButton("download_heatmap", "Download Heatmap")
+)
+
+
+observeEvent(input$show_heatmap_help, {
+  showModal(
+    modalDialog(
+      title = "Interactive Heatmap of Gene Expression",
+      easyClose = TRUE,
+      tags$p("This heatmap visualizes the Count Per Million (CPM) expression data for genes associated with the selected Gene Ontology (GO) term(s). Color intensity represents the expression level, allowing for quick identification of highly or lowly expressed genes."),
+      tags$p("Key features include:"),
+      tags$ul(
+        tags$li(tags$b("Clustering:"), " Users can toggle clustering for Genes (rows) and Samples (columns) to group similar expression patterns using selected Distance and Linkage methods."),
+        tags$li(tags$b("Scaling by Row (Gene):"), " Highlights relative changes (up/down-regulation) for a specific gene across samples, ignoring absolute abundance."),
+        tags$li(tags$b("Scaling by Column:"), " Normalizes differences between sample libraries.")
+      )
+    )
+  )
+})
+
 ```
 
 ```{r, echo=FALSE}
 
-renderPlot({
-  req(input$GOID, input$distanceSam,
-      input$distanceGene, input$linkage, input$scale)
+heatmap_data <- reactive({
+  req(input$GOID, input$distanceSam, input$distanceGene, input$linkage, input$scale)
+  
   selected_genes <- go_to_symbols %>%
     filter(GO_ID %in% input$GOID) %>%
     pull(Symbol) %>%
     unique()
+    
   cpm_sub <- cpm_mat[cpm_mat[,1] %in% selected_genes, ,drop = FALSE]
+  
   cpm_numeric <- apply(cpm_sub[,-1,drop=FALSE], 2, function(x) as.numeric(trimws(x)))
   rownames(cpm_numeric) <- cpm_sub[,1]
-  pheatmap(cpm_numeric, scale = input$scale, 
+  
+  return(cpm_numeric)
+})
+
+renderPlot({
+  pheatmap(heatmap_data(), 
+           scale = input$scale, 
            cluster_rows = as.logical(input$clGene), 
            cluster_cols = as.logical(input$clSam), 
            clustering_distance_rows = input$distanceGene, 
@@ -523,8 +368,31 @@ renderPlot({
 }, 
 res = 150, 
 height = function(){
-  max(1200, nrow(50) * 12)
+  max(1200, nrow(heatmap_data()))
 }, 
 width = 1200
 )
+
+
+
+output$download_heatmap <- downloadHandler(
+  filename = function() {
+    paste("Heatmap_", paste(input$GOID, collapse="_"), ".png", sep = "")
+  },
+  content = function(file) {
+    file_height <- max(1200, nrow(heatmap_data()) * 12)
+    png(file, width = 1200, height = file_height, res = 150)
+    pheatmap(heatmap_data(), 
+             scale = input$scale, 
+             cluster_rows = as.logical(input$clGene), 
+             cluster_cols = as.logical(input$clSam), 
+             clustering_distance_rows = input$distanceGene, 
+             clustering_distance_cols = input$distanceSam,
+             clustering_method = input$linkage)
+    
+    dev.off()
+  }
+)
+
 ```
+
