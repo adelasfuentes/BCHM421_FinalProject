@@ -22,6 +22,7 @@ library(htmltools)
 library(pheatmap)
 library(ggsci)
 library(plotly)
+library(ComplexHeatmap)
 load("FinalProjectImage.rda")
 ```
 
@@ -203,17 +204,24 @@ output$gene_expression_plot <- renderPlotly({
   
   ggplotly(p)
 })
+
+  output$download_symbol_plot <- downloadHandler(
+  filename = function() {
+    clean_name <- gsub(":", "_", input$go_selector)
+    paste("GO_Analysis_", clean_name, ".png", sep = "")
+  },
+  content = function(file){
+    ggsave(file, plot = plot_reactive(), device = "png", width = 14, height = 8)
+  }
+)
 ```
 
-## Format GO tibble for widget creation
 
 ```{r, echo=FALSE}
 GO_widget <- GO_gene %>%
   rename(GO_ID = `GO Term`) %>%
   rename(FDR = `FDR q-value`) %>%
   select(GO_ID, Group, Description, FDR, Enrichment)
-
-GO_widget
 ```
 
 ## GO data table
@@ -441,41 +449,47 @@ heatmap_data <- reactive({
 })
 
 renderPlot({
-  pheatmap(heatmap_data(), 
-           scale = input$scale, 
-           cluster_rows = as.logical(input$clGene), 
-           cluster_cols = as.logical(input$clSam), 
-           clustering_distance_rows = input$distanceGene, 
-           clustering_distance_cols = input$distanceSam,
-           clustering_method = input$linkage)
-}, 
-res = 150, 
-height = function(){
+  pheatmap(
+    heatmap_data(),
+    scale = input$scale,
+    cluster_rows = as.logical(input$clGene),
+    cluster_cols = as.logical(input$clSam),
+    clustering_distance_rows = input$distanceGene,
+    clustering_distance_cols = input$distanceSam,
+    clustering_method = input$linkage,
+    fontsize_row = 12/length(input$GOID),
+    cellheight = 12/length(input$GOID),
+    border_color = "gray"
+  )
+},
+res = 150,
+height = function() {
   max(1200, nrow(heatmap_data()) * 12)
-}, 
+},
 width = 1200
 )
 
 
 
-output$download_heatmap <- downloadHandler(
-  filename = function() {
-    paste("Heatmap_", paste(input$GOID, collapse="_"), ".png", sep = "")
-  },
-  content = function(file) {
-    file_height <- max(1200, nrow(heatmap_data()) * 12)
-    png(file, width = 1200, height = file_height, res = 150)
-    pheatmap(heatmap_data(), 
-             scale = input$scale, 
-             cluster_rows = as.logical(input$clGene), 
-             cluster_cols = as.logical(input$clSam), 
-             clustering_distance_rows = input$distanceGene, 
-             clustering_distance_cols = input$distanceSam,
-             clustering_method = input$linkage)
-    
-    dev.off()
-  }
-)
+
+# output$download_heatmap <- downloadHandler(
+#   filename = function() {
+#     paste("Heatmap_", paste(input$GOID, collapse="_"), ".png", sep = "")
+#   },
+#   content = function(file) {
+#     file_height <- max(1200, nrow(heatmap_data()) * 12)
+#     png(file, width = 1200, height = file_height, res = 150)
+#     pheatmap(heatmap_data(), 
+#              scale = input$scale, 
+#              cluster_rows = as.logical(input$clGene), 
+#              cluster_cols = as.logical(input$clSam), 
+#              clustering_distance_rows = input$distanceGene, 
+#              clustering_distance_cols = input$distanceSam,
+#              clustering_method = input$linkage)
+#     
+#     dev.off()
+#   }
+# )
 
 ```
 
